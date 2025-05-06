@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- 游戏化标题 -->
+        <div class="auth-header">
+            <h1>加入一起吧</h1>
+            <div class="xp-mini">
+                <div class="xp-track"></div>
+                <span class="xp-label">together</span>
+            </div>
+        </div>
+
+        <form class="auth-form" method="POST" enctype="multipart/form-data" action="">
+            {{ form.hidden_tag() }}
+            
+            <!-- 用户名 -->
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.c_usename(class="form-input", placeholder=" ") }}
+                    <span class="input-icon">👤</span>
+                    <label class="floating-label">用户名</label>
+                </div>
+                {% for error in form.c_usename.errors %}
+                    <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- 邮箱 -->
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.email(class="form-input", placeholder=" ") }}
+                    <span class="input-icon">✉️</span>
+                    <label class="floating-label">邮箱</label>
+                </div>
+                {% for error in form.email.errors %}
+                    <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- 密码 -->
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.password(class="form-input", placeholder=" ", id="password") }}
+                    <span class="input-icon">🔒</span>
+                    <label class="floating-label">密码</label>
+                    <span class="password-toggle" onclick="togglePassword()">👁️</span>
+                </div>
+                <div class="password-strength">
+                    <div class="strength-bar"></div>
+                    <span class="strength-text">密码强度: 弱</span>
+                </div>
+                {% for error in form.password.errors %}
+                    <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- 确认密码 -->
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.password2(class="form-input", placeholder=" ") }}
+                    <span class="input-icon">✅</span>
+                    <label class="floating-label">确认密码</label>
+                </div>
+                {% for error in form.password2.errors %}
+                    <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- 手机号 -->
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.phonenumber(class="form-input", placeholder=" ") }}
+                    <span class="input-icon">📱</span>
+                    <label class="floating-label">手机号</label>
+                </div>
+                {% for error in form.phonenumber.errors %}
+                    <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- 头像上传 -->
+            <div class="form-group avatar-upload">
+                <label class="upload-label">
+                    <span class="upload-icon">🖼️</span>
+                    <span class="upload-text">点击上传头像</span>
+                    {{ form.c_avatar(accept="image/*", onchange="previewImage(event)") }}
+                </label>
+                <div class="avatar-preview" id="avatar-preview">
+                    <div class="default-avatar">👤</div>
+                </div>
+                {% for error in form.c_avatar.errors %}
+                    <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-footer">
+                {{ form.submit(class="auth-btn") }}
+                <div class="login-link">
+                    已有账号? <a href="{{ url_for('login') }}">立即登录</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// 头像预览
+function previewImage(event) {
+    const input = event.target;
+    const preview = document.getElementById('avatar-preview');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="头像预览">`;
+            preview.classList.add('has-image');
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 密码显示/隐藏
+function togglePassword() {
+    const password = document.getElementById('password');
+    const toggle = document.querySelector('.password-toggle');
+    
+    if (password.type === 'password') {
+        password.type = 'text';
+        toggle.textContent = '🙈';
+    } else {
+        password.type = 'password';
+        toggle.textContent = '👁️';
+    }
+}
+
+// 密码强度检测
+document.getElementById('password').addEventListener('input', function(e) {
+    const password = e.target.value;
+    const strengthBar = document.querySelector('.strength-bar');
+    const strengthText = document.querySelector('.strength-text');
+    
+    let strength = 0;
+    if (password.length > 0) strength += 1;
+    if (password.length >= 8) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+    
+    const width = strength * 20;
+    strengthBar.style.width = `${width}%`;
+    
+    if (strength <= 1) {
+        strengthBar.style.backgroundColor = '#ff4d4f';
+        strengthText.textContent = '密码强度: 弱';
+    } else if (strength <= 3) {
+        strengthBar.style.backgroundColor = '#faad14';
+        strengthText.textContent = '密码强度: 中';
+    } else {
+        strengthBar.style.backgroundColor = '#52c41a';
+        strengthText.textContent = '密码强度: 强';
+    }
+});
+</script>
+
+<style>
+/* ===== 注册页专属样式 ===== */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 480px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    padding: 2.5rem;
+    animation: fadeInUp 0.6s ease;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
+}
+
+/* 游戏化经验条 */
+.xp-mini {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.xp-track {
+    width: 120px;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.xp-track::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary), var(--accent));
+    animation: xpProgress 1.5s ease-in-out;
+}
+
+.xp-label {
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+/* 表单组 */
+.form-group {
+    margin-bottom: 1.8rem;
+    position: relative;
+}
+
+.input-wrapper {
+    position: relative;
+    margin-top: 1rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 2.8rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s;
+    height: 52px;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+    outline: none;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    z-index: 2;
+}
+
+.floating-label {
+    position: absolute;
+    left: 2.8rem;
+    top: 1rem;
+    color: #999;
+    transition: all 0.2s;
+    pointer-events: none;
+}
+
+.form-input:focus + .input-icon + .floating-label,
+.form-input:not(:placeholder-shown) + .input-icon + .floating-label {
+    top: -0.6rem;
+    left: 2.8rem;
+    font-size: 0.75rem;
+    background: white;
+    padding: 0 0.3rem;
+    color: var(--primary);
+}
+
+/* 密码强度检测 */
+.password-strength {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.strength-bar {
+    height: 4px;
+    width: 0%;
+    background: #ff4d4f;
+    border-radius: 2px;
+    transition: width 0.3s, background 0.3s;
+}
+
+.strength-text {
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none;
+    font-size: 1.1rem;
+}
+
+/* 头像上传 */
+.avatar-upload {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 120px;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-label:hover {
+    border-color: var(--primary);
+    background: rgba(74, 111, 165, 0.05);
+}
+
+.upload-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.upload-text {
+    font-size: 0.85rem;
+    color: #666;
+    text-align: center;
+}
+
+.avatar-upload input[type="file"] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.avatar-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.default-avatar {
+    font-size: 3rem;
+    color: #ccc;
+}
+
+.avatar-preview.has-image .default-avatar {
+    display: none;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 错误提示 */
+.error-message {
+    color: #ff4d4f;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+    padding-left: 0.5rem;
+}
+
+/* 提交按钮 */
+.auth-btn {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(74, 111, 165, 0.3);
+    margin-top: 1.5rem;
+}
+
+.auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(74, 111, 165, 0.4);
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.login-link a {
+    color: var(--primary);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes xpProgress {
+    from { width: 0; }
+    to { width: 100%; }
+}
+</style>
+{% endblock %}

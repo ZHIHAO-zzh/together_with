@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="create-group-container">
+    <div class="create-group-card">
+        <!-- 标题区 -->
+        <div class="create-group-header">
+            <h1><span class="icon">👥</span> 创建新群聊</h1>
+            <div class="create-group-hint">
+                与志同道合的朋友一起交流
+            </div>
+        </div>
+
+        <!-- 创建表单 -->
+        <form method="post" class="create-group-form">
+            <!-- 群聊名称 -->
+            <div class="form-group">
+                <label for="name" class="form-label">
+                    <span class="label-icon">🏷️</span>
+                    <span>群聊名称</span>
+                </label>
+                <div class="input-wrapper">
+                    <input type="text" id="name" name="name" class="form-input" required placeholder="例如: 2023级计算机1班">
+                    <span class="input-hint">2-20个字符，不能包含特殊符号</span>
+                </div>
+            </div>
+
+
+            <!-- 群聊头像 -->
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">🖼️</span>
+                    <span>群聊头像</span>
+                </label>
+                <div class="avatar-upload">
+                    <div class="avatar-preview" id="avatar-preview">
+                        <div class="default-group-avatar">👥</div>
+                    </div>
+                    <label class="upload-btn">
+                        <input type="file" id="avatar" name="avatar" accept="image/*" onchange="previewImage(event)">
+                        <span class="upload-icon">📤</span>
+                        <span class="upload-text">上传头像</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 创建按钮 -->
+            <div class="form-actions">
+                <button type="submit" class="create-btn">
+                    <span class="icon">✨</span>
+                    <span>创建群聊</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function previewImage(event) {
+    const input = event.target;
+    const preview = document.getElementById('avatar-preview');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="群聊头像预览">`;
+            preview.classList.add('has-image');
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+</script>
+
+<style>
+/* ===== 创建群聊页样式 ===== */
+:root {
+    --primary: #4A6FA5;
+    --secondary: #6ECCAF;
+    --accent: #FF9F1C;
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --text-light: #666666;
+    --border: #e0e0e0;
+}
+
+.create-group-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px;
+}
+
+.create-group-card {
+    width: 100%;
+    max-width: 500px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    padding: 2rem;
+    animation: fadeInUp 0.6s ease;
+}
+
+.create-group-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.create-group-header h1 {
+    font-size: 1.5rem;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+
+.create-group-header .icon {
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.create-group-hint {
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+/* 表单组 */
+.create-group-form {
+    margin-top: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.8rem;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.label-icon {
+    margin-right: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.tag-hint {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-left: 0.5rem;
+    font-weight: normal;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.form-input {
+    width: 92%;
+    padding: 0.9rem 1.2rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+    outline: none;
+}
+
+.input-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 0.5rem;
+    padding-left: 0.5rem;
+}
+
+/* 标签选择 */
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.tag-option {
+    position: relative;
+}
+
+.tag-option input {
+    position: absolute;
+    opacity: 0;
+}
+
+.tag-option label {
+    display: inline-block;
+    padding: 0.6rem 1rem;
+    background: rgba(0,0,0,0.05);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    user-select: none;
+}
+
+.tag-option input:checked + label {
+    background: var(--primary);
+    color: white;
+}
+
+/* 头像上传 */
+.avatar-upload {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.default-group-avatar {
+    font-size: 2rem;
+    color: #ccc;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.upload-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 1.5rem;
+    background: rgba(74, 111, 165, 0.1);
+    color: var(--primary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upload-btn:hover {
+    background: rgba(74, 111, 165, 0.2);
+}
+
+.upload-btn input {
+    display: none;
+}
+
+.upload-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.3rem;
+}
+
+.upload-text {
+    font-size: 0.9rem;
+}
+
+/* 创建按钮 */
+.form-actions {
+    text-align: center;
+    margin-top: 2.5rem;
+}
+
+.create-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.9rem 2rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(74, 111, 165, 0.3);
+}
+
+.create-btn:hover {
+    background: linear-gradient(135deg, #3a5a8f, #5cb89e);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(74, 111, 165, 0.4);
+}
+
+.create-btn .icon {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 576px) {
+    .create-group-card {
+        padding: 1.5rem;
+    }
+    
+    .avatar-upload {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .create-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,496 @@
+/* ===== 极简专业基础样式 ===== */
+*{
+    margin: 0;
+    padding: 0;
+    text-decoration: none;
+}
+
+body {
+    text-decoration: none;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: #333;
+    line-height: 1.6;
+}
+
+.app-header {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.main-nav {
+    display: flex;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.8rem 1.5rem;
+}
+
+.nav-brand {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--primary);
+    margin-right: auto;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.nav-link {
+    color: #555;
+    font-weight: 500;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+}
+
+.nav-cta {
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.nav-cta1 {
+    background-color: rgb(5, 144, 194);
+}
+
+/* ===== 游戏化元素 ===== */
+/* 1. 徽章系统 */
+.nav-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 2. 经验进度条 */
+.xp-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: #e0e0e0;
+}
+
+.xp-progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary), var(--accent));
+    transition: width 0.5s;
+}
+
+.xp-text {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    font-size: 0.8rem;
+    color: var(--primary);
+    background: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 3. 用户头像交互 */
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+    display: grid;
+    place-items: center;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-avatar:hover {
+    border-color: var(--accent);
+    transform: scale(1.1);
+}
+
+/* ===== 极简卡片样式 ===== */
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* ===== 登录页专属样式 ===== */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    padding: 2.5rem;
+    animation: fadeInUp 0.6s ease;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* 游戏化经验条 */
+.xp-mini {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.xp-track {
+    width: 100px;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.xp-track::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary), var(--accent));
+    animation: xpProgress 1.5s ease-in-out;
+}
+
+.xp-label {
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+/* 输入框样式 */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.form-input {
+    width: 85%;
+    padding: 0.8rem 1rem 0.8rem 2.5rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+    outline: none;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+/* 记住我复选框 */
+.remember-me {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.remember-me input {
+    position: absolute;
+    opacity: 0;
+}
+
+.checkmark {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-right: 8px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.remember-me input:checked ~ .checkmark {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.checkmark::after {
+    content: "✓";
+    position: absolute;
+    color: white;
+    font-size: 12px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.remember-me input:checked ~ .checkmark::after {
+    opacity: 1;
+}
+
+/* 登录按钮 */
+.auth-btn {
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(74, 111, 165, 0.3);
+}
+
+.auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 111, 165, 0.4);
+}
+
+/* 底部链接 */
+.auth-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.link-text {
+    color: #666;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.link-highlight {
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.link-text:hover {
+    color: var(--primary);
+}
+
+.divider {
+    color: #ddd;
+}
+
+.flash-container {
+    position: fixed;
+    right: 30px;
+    bottom: 30px;
+    width: 220px;
+    padding: 10px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #6ECCAF 100%);
+    border: 1px solid #4dd0e1;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 150, 180, 0.2);
+    z-index: 1000;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+/* 响应式消息栏 */
+@media (max-width: 768px) {
+    .flash-container {
+        width: 250px;
+        right: 10px;
+        bottom: 10px;
+    }
+}
+
+
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes xpProgress {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.3s;
+  }
+  
+  .user-dropdown:hover .user-avatar {
+    transform: scale(1.05);
+  }
+  
+  .dropdown-menu {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-15px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 6px;
+    min-width: 160px;
+    padding: 8px 0;
+  }
+  
+  .user-dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(5px); /* 轻微下移增强动感 */
+  }
+  
+  .dropdown-menu a {
+    display: block;
+    padding: 10px 16px;
+    color: #333;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  
+  .dropdown-menu a:hover {
+    background: #f8f9fa;
+  }
+
+  .add-tag-btn {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 1rem;
+      padding: 0.6rem 1rem;
+      background: linear-gradient(135deg, #4a6cf7, #6a4af7);
+      color: white;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 15px;
+      box-shadow: 0 2px 10px rgba(74, 108, 247, 0.3);
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+  }
+  
+  .add-tag-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(74, 108, 247, 0.4);
+      background: linear-gradient(135deg, #3a5ce4, #5a3ae4);
+  }
+  
+  .add-tag-btn:active {
+      transform: translateY(0);
+  }
+  
+  .btn-icon {
+      display: inline-block;
+      margin-right: 8px;
+      font-size: 18px;
+      transition: transform 0.3s;
+  }
+  
+  .add-tag-btn:hover .btn-icon {
+      transform: rotate(90deg);
+  }
+  
+  /* 如果需要在卡片中使用 */
+  .card .add-tag-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+  }
+  
+  /* 暗色模式适配 */
+  @media (prefers-color-scheme: dark) {
+      .add-tag-btn {
+          background: linear-gradient(135deg, #3a5ce4, #5a3ae4);
+      }
+  }
+
+
+
+

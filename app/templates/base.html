@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - 一起吧</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --primary: #4A6FA5;  /* 主色-沉稳蓝 */
+            --secondary: #6ECCAF;  /* 辅色-活力绿 */
+            --accent: #FF9F1C;  /* 强调色-游戏化橙 */
+            --bg: #f8f9fa;  /* 背景色 */
+        }
+    </style>
+</head>
+<body>
+    <!-- Flash 消息改为顶部居中悬浮 -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-container">
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- 导航栏重构 -->
+    <header class="app-header">
+        <nav class="main-nav">
+            <a href="{{ url_for('index') }}" class="nav-brand">一起吧</a>
+            <div class="nav-links">
+                {% if current_user.is_authenticated %}
+                    <a href="/relationship" class="nav-link" data-badge="{{ new if new else '' }}">好友</a>
+                    <a href="/accept_friend_request" class="nav-link with-badge" data-badge="{{ new if new else '' }}">好友申请</a>
+                    <a href="{{ url_for('group_list') }}" class="nav-link">群聊</a>
+                    <div>
+                        <a href="{{ url_for('activity_create') }}" class="nav-cta">+ 创建活动</a>
+                        <a href="{{ url_for('activity_manage') }}" class="nav-cta nav-cta1">⚙️管理活动</a>
+                    </div>
+
+                    <div class="user-dropdown">
+                        <div class="user-avatar">
+                            {% if current_user.c_avatar_URL %}
+                            <img src="{{ current_user.c_avatar_URL }}" alt="{{ current_user.c_usename }}">
+                            {% else %}
+                            <div class="default-avatar">👤</div>
+                            {% endif %}
+                        </div>
+                        <div class="dropdown-menu">
+                            <a href="{{ url_for('profile') }}">个人资料</a>
+                            <a href="{{ url_for('show_commend') }}">查看评价</a>
+                            <a href="{{ url_for('logout') }}">退出</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">登录</a>
+                    <a href="{{ url_for('register') }}" class="nav-cta">注册</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <main class="app-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // 动态徽章显示
+        document.querySelectorAll('.with-badge').forEach(el => {
+            if(el.dataset.badge) {
+                const badge = document.createElement('span');
+                badge.className = 'nav-badge';
+                badge.textContent = el.dataset.badge;
+                el.appendChild(badge);
+            }
+        });
+    </script>
+</body>
+</html>

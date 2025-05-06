@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="comments-container">
+    <!-- 头部评分卡片 -->
+    <div class="rating-card">
+        <div class="rating-header">
+            <h1 class="rating-title">
+                <svg class="rating-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                我的评价
+            </h1>
+            <div class="rating-badge">
+                <span class="rating-label">综合评分</span>
+                <span class="rating-value">{{ "%.1f"|format(adv_rating) }}</span>
+                <span class="rating-max">/ 5.0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 评论列表 -->
+    <ul id="commends" class="comments-list">
+        {% for commend in commends %}
+        <li class="comment-item">
+            <div class="comment-content">
+                <!-- 活动标题和评分 -->
+                <div class="comment-header">
+                    <h2 class="activity-title">{{ commend.activity.a_name }}</h2>
+                    <div class="activity-rating">
+                        <span class="rating-number">{{ commend.rating }}</span>
+                        <svg class="star-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 评价内容 -->
+                <div class="comment-text">
+                    {{ commend.evaluation_content | default("暂无详细评价", true) }}
+                </div>
+
+                <!-- 时间和装饰元素 -->
+                <div class="comment-footer">
+                    <span class="comment-time">
+                        <svg class="time-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ commend.e_time }}
+                    </span>
+                    <span class="comment-index">
+                        评价 #{{ loop.index }}
+                    </span>
+                </div>
+            </div>
+        </li>
+        {% else %}
+        <!-- 空状态 -->
+        <li class="empty-state">
+            <div class="empty-content">
+                <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                <h3 class="empty-title">暂无评价记录</h3>
+                <p class="empty-message">您还没有发表过任何评价，快去参与活动并留下您的宝贵意见吧！</p>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- 加载更多/底部提示 -->
+    <div class="comments-footer">
+        {% if commends %}
+        <div class="footer-content">
+            <svg class="footer-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/>
+            </svg>
+            共 {{ commends|length }} 条评价 • 已经到底啦
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/comments.css') }}">
+<script src="{{ url_for('static', filename='js/comments.js') }}" defer></script>
+<style>
+    /* 基础布局 */
+.comments-container {
+    max-width: 56rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* 评分卡片样式 */
+.rating-card {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+}
+
+.rating-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.rating-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.rating-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+}
+
+.rating-icon {
+    height: 2rem;
+    width: 2rem;
+    margin-right: 0.5rem;
+    color: #f59e0b;
+}
+
+.rating-badge {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(to right, #fef3c7, #fffbeb);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+}
+
+.rating-label {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #92400e;
+    margin-right: 0.5rem;
+}
+
+.rating-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #b45309;
+    animation: pulse 2s infinite;
+}
+
+.rating-max {
+    color: #d97706;
+    margin-left: 0.25rem;
+}
+
+/* 评论列表样式 */
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.comment-item {
+    background-color: white;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+.comment-item:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+}
+
+.comment-content {
+    padding: 1.5rem;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.activity-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.activity-rating {
+    display: flex;
+    align-items: center;
+    background-color: #f9fafb;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+}
+
+.rating-number {
+    color: #b45309;
+    font-weight: 500;
+    margin-right: 0.25rem;
+}
+
+.star-icon {
+    height: 1.25rem;
+    width: 1.25rem;
+    color: #f59e0b;
+}
+
+.comment-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: #4b5563;
+    margin-bottom: 1rem;
+    max-width: 100%;
+}
+
+.comment-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.comment-time {
+    display: flex;
+    align-items: center;
+}
+
+.time-icon {
+    height: 1rem;
+    width: 1rem;
+    margin-right: 0.25rem;
+}
+
+.comment-index {
+    font-size: 0.75rem;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+}
+
+/* 空状态样式 */
+.empty-state {
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.empty-content {
+    max-width: 28rem;
+    margin: 0 auto;
+}
+
+.empty-icon {
+    height: 4rem;
+    width: 4rem;
+    margin: 0 auto 1rem;
+    color: #9ca3af;
+}
+
+.empty-title {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.empty-message {
+    color: #6b7280;
+}
+
+/* 底部样式 */
+.comments-footer {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.footer-content {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background-color: #f9fafb;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+}
+
+.footer-icon {
+    height: 1rem;
+    width: 1rem;
+    margin-right: 0.5rem;
+}
+
+/* 动画 */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // 为评论卡片添加动画延迟
+    const commentItems = document.querySelectorAll('.comment-item');
+    
+    commentItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.05}s`;
+        item.style.opacity = '0';
+        
+        // 确保动画只播放一次
+        item.addEventListener('animationend', function() {
+            item.style.opacity = '1';
+        });
+    });
+
+    // 如果有评分值，添加脉冲动画
+    const ratingValue = document.querySelector('.rating-value');
+    if (ratingValue) {
+        // 确保动画只播放几次
+        let pulseCount = 0;
+        const maxPulses = 3;
+        
+        const pulseInterval = setInterval(() => {
+            ratingValue.style.animation = 'pulse 1.5s ease-in-out';
+            
+            ratingValue.addEventListener('animationend', function handler() {
+                pulseCount++;
+                if (pulseCount >= maxPulses) {
+                    clearInterval(pulseInterval);
+                    ratingValue.style.animation = '';
+                }
+                ratingValue.removeEventListener('animationend', handler);
+            });
+        }, 3000);
+    }
+
+    // 悬停效果增强
+    commentItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px)';
+            this.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+        });
+    });
+});
+</script>
+{% endblock %}

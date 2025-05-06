@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="chat-container">
+    <div class="chat-card">
+        <!-- 聊天标题区 -->
+        <div class="chat-header">
+            <div class="user-info">
+                <div class="user-avatar">
+                    {% if other_user.c_avatar_URL %}
+                    <img src="{{ other_user.c_avatar_URL }}" alt="{{ other_user.c_usename }}">
+                    {% else %}
+                    <div class="default-avatar">👤</div>
+                    {% endif %}
+                    <span class="status-dot {% if other_user.is_online %}online{% else %}offline{% endif %}"></span>
+                </div>
+                <div class="user-meta">
+                    <h1>
+                        {% if activity and activity.a_id != '0' %}
+                        <span class="activity-name">{{ activity.a_name }}</span> · 
+                        {% endif %}
+                        <span class="username">{{ other_user.c_usename }}</span>
+                    </h1>
+                    <div class="user-status">
+                        {% if other_user.is_online %}
+                        <span class="online-text">在线</span>
+                        {% else %}
+                        <span class="offline-text">最后在线: {{ other_user.last_seen|default('未知') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="chat-actions">
+                <button class="action-btn" title="用户资料">
+                    <span class="icon">📨</span>
+                </button>
+                <button class="action-btn" title="更多操作">
+                    <span class="icon">⋯</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 聊天主区域 -->
+        <div class="chat-main">
+            <!-- 消息容器 -->
+            <div class="messages-container" id="messages">
+                {% for message in messages %}
+                <div class="message {% if message.sender_c_id == current_user.c_id %}sent{% else %}received{% endif %}">
+                    <div class="message-avatar">
+                        {% if message.sender.c_avatar_URL %}
+                        <img src="{{ message.sender.c_avatar_URL }}" alt="{{ message.sender.c_usename }}">
+                        {% else %}
+                        <div class="default-avatar">👤</div>
+                        {% endif %}
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="sender-name">{{ message.sender.c_usename }}</span>
+                        </div>
+                        <div class="message-text">{{ message.message_content }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 输入区域 -->
+            <form id="message-form" class="message-form">
+                <div class="input-wrapper">
+                    <input type="text" id="message-input" placeholder="输入消息..." required>
+                    <div class="message-actions">
+                        <button type="button" class="action-btn" title="表情">
+                            <span class="icon">😊</span>
+                        </button>
+                        <button type="button" class="action-btn" title="图片">
+                            <span class="icon">🖼️</span>
+                        </button>
+                    </div>
+                    <button type="submit" class="send-btn">
+                        <span class="icon">✉️</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+<script>
+// 初始化Socket.IO
+const socket = io('http://' + document.domain + ':' + location.port, {
+    transports: ['websocket'],
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000
+});
+
+// 页面加载完成后滚动到底部
+window.addEventListener('load', function() {
+    scrollToBottom();
+});
+
+// 加入聊天室
+socket.on('connect', function() {
+    console.log('SocketIO connected');
+    socket.emit('join', {room: '{{ conversation_id }}'});
+    
+    // 检查用户在线状态
+    checkOnlineStatus();
+});
+
+// 连接错误处理
+socket.on('connect_error', (error) => {
+    console.log('Connection error:', error);
+    showToast('连接断开，正在尝试重连...', 'warning');
+});
+
+// 接收新消息
+socket.on('new_message', function(data) {
+
+    const messagesContainer = document.getElementById('messages');
+
+    // 类型安全判断
+    const isCurrentUser = data.sender === "{{ current_user.c_usename }}";
+
+    // 创建消息容器
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', isCurrentUser ? 'sent' : 'received');
+
+    // 消息内容
+    messageDiv.innerHTML = `
+        <div class="message-avatar">
+            ${data.sender_avatar ?
+                `<img src="${data.sender_avatar}" alt="${data.sender}">` :
+                '<div class="default-avatar">👤</div>'}
+        </div>
+        <div class="message-content">
+            ${!isCurrentUser ?
+                `<div class="message-header">
+                    <span class="sender-name">${data.sender}</span>
+                </div>` : `<div class="message-header">
+                    <span class="sender-name">${data.sender}</span>
+                </div>`}
+            <div class="message-text">${data.content}</div>
+            <span class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+        </div>
+    `;
+    // 强制样式应用
+    void messageDiv.offsetWidth; // 触发重绘
+
+    messagesContainer.appendChild(messageDiv);
+    scrollToBottom();
+
+    // 新消息通知
+    if (data.sender_c_id !== '{{ current_user.c_id }}' && !document.hasFocus()) {
+        showNewMessageNotification(data.sender, data.content);
+    }
+ });
+
+
+{##}
+{#// 在线状态更新#}
+{#socket.on('user_status', function(data) {#}
+{#    const statusDot = document.querySelector('.status-dot');#}
+{#    const onlineText = document.querySelector('.online-text');#}
+{#    const offlineText = document.querySelector('.offline-text');#}
+{#    #}
+{#    if (data.user_id === {{ other_user.c_id }}) {#}
+{#        if (data.is_online) {#}
+{#            statusDot.classList.add('online');#}
+{#            statusDot.classList.remove('offline');#}
+{#            if (onlineText) onlineText.textContent = '在线';#}
+{#            if (offlineText) offlineText.style.display = 'none';#}
+{#        } else {#}
+{#            statusDot.classList.add('offline');#}
+{#            statusDot.classList.remove('online');#}
+{#            if (onlineText) onlineText.style.display = 'none';#}
+{#            if (offlineText) {#}
+{#                offlineText.style.display = 'inline';#}
+{#                offlineText.textContent = `最后在线: ${new Date(data.last_seen).toLocaleString()}`;#}
+{#            }#}
+{#        }#}
+{#    }#}
+{# });#}
+
+// 发送消息
+document.getElementById('message-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    sendMessage();
+});
+
+// 输入框回车发送
+document.getElementById('message-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// 发送消息函数
+function sendMessage() {
+    const input = document.getElementById('message-input');
+    if (input.value.trim()) {
+        const messageData = {
+            receiver_id: {{ other_user.c_id }},
+            content: input.value.trim()
+        };
+        
+        {% if activity %}
+        messageData.activity_id = {{ activity.a_id }};
+        {% endif %}
+        
+        socket.emit('send_message', messageData);
+        input.value = '';
+    }
+}
+
+// 检查用户在线状态
+function checkOnlineStatus() {
+    socket.emit('check_status', {user_id: {{ other_user.c_id }}});
+}
+
+// 辅助函数：滚动到底部
+function scrollToBottom() {
+    const messagesContainer = document.getElementById('messages');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// 辅助函数：显示新消息通知
+function showNewMessageNotification(sender, content) {
+    if (Notification.permission === 'granted') {
+        const notification = new Notification(`${sender}发来新消息`, {
+            body: content.length > 30 ? content.substring(0, 30) + '...' : content,
+            icon: '/static/images/notification-icon.png'
+        });
+        
+        notification.onclick = () => {
+            window.focus();
+        };
+    }
+}
+
+// 辅助函数：显示Toast提示
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// 请求通知权限
+if (Notification.permission !== 'granted') {
+    Notification.requestPermission();
+}
+
+// 输入框高度自适应
+const messageInput = document.getElementById('message-input');
+messageInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+
+</script>
+
+<style>
+/* ===== 聊天页面样式 ===== */
+:root {
+    --primary: #4A6FA5;
+    --secondary: #6ECCAF;
+    --accent: #FF9F1C;
+    --online: #52c41a;
+    --offline: #ccc;
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --text-light: #666666;
+    --border: #e0e0e0;
+}
+
+.chat-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 120px);
+    background: var(--bg);
+    padding: 20px;
+}
+
+.chat-card {
+    width: 100%;
+    max-width: 700px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    overflow: hidden;
+    animation: fadeInUp 0.6s ease;
+}
+
+/* 聊天标题区 */
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.default-avatar {
+    font-size: 1.8rem;
+    color: white;
+}
+
+.status-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.status-dot.online {
+    background: var(--online);
+}
+
+.status-dot.offline {
+    background: var(--offline);
+}
+
+.user-meta h1 {
+    font-size: 1.2rem;
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.activity-name {
+    font-weight: 500;
+    opacity: 0.9;
+    margin-right: 0.5rem;
+}
+
+.username {
+    font-weight: 600;
+}
+
+.user-status {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.online-text {
+    color: var(--online);
+}
+
+.offline-text {
+    color: rgba(255,255,255,0.7);
+}
+
+.chat-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+/* 聊天主区域 */
+.chat-main {
+    display: flex;
+    flex-direction: column;
+    height: 65vh;
+}
+
+/* 消息容器 */
+.messages-container {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.02);
+}
+
+.message {
+    display: flex;
+    margin-bottom: 1.2rem;
+    max-width: 80%;
+}
+
+.message.sent {
+    margin-left: auto;
+    flex-direction: row-reverse;
+}
+
+.message.received {
+    margin-right: auto;
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    margin: 0 0.8rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.message-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.message-header {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 0.3rem;
+}
+
+.sent .message-header {
+    justify-content: flex-end;
+}
+
+.sender-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-right: 0.5rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: var(--text-light);
+}
+
+.message-text {
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.sent .message-text {
+    background: var(--primary);
+    color: white;
+    border-top-right-radius: 0;
+}
+
+.received .message-text {
+    background: white;
+    border: 1px solid var(--border);
+    border-top-left-radius: 0;
+}
+
+/* 输入区域 */
+.message-form {
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    background: white;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+}
+
+.message-form input {
+    flex: 1;
+    padding-left: 0.8rem;
+    border: none;
+    outline: none;
+    font-size: 0.95rem;
+    min-height: 20px;
+    max-height: 120px;
+    resize: none;
+}
+
+.message-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 0.5rem;
+    border-right: 1px solid var(--border);
+}
+
+.send-btn {
+    padding: 1rem 1.2rem;
+    height: 100%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.send-btn:hover {
+    background: #3a5a8f;
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .chat-card {
+        border-radius: 0;
+    }
+    
+    .message {
+        max-width: 90%;
+    }
+    
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        margin: 0 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .chat-container {
+        padding: 0;
+    }
+    
+    .chat-header {
+        padding: 1rem;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .user-meta h1 {
+        font-size: 1rem;
+    }
+    
+    .message-avatar {
+        display: none;
+    }
+    
+    .message {
+        max-width: 95%;
+    }
+}
+</style>
+{% endblock %}

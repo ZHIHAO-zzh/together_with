@@ -1,0 +1,958 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="activity-detail-container">
+    <div class="activity-detail-card">
+        <!-- 活动标题区 -->
+        <div class="activity-header">
+            <div class="activity-title">
+                <h1>{{ activity.a_name }}</h1>
+                <div class="activity-tags">
+                    {% for tag in activity_tags %}
+                        {% if activity.a_id == tag.a_id %}
+                        <span class="tag">{{ tag.tag.tag_name }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="activity-rating">
+                <div class="rating-stars">
+                    {% for i in range(1, 6) %}
+                        {% if i <= average_rating|float|round() %}
+                        <span class="star filled">★</span>
+                        {% else %}
+                        <span class="star">☆</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="rating-value">{{ average_rating|float|round(1) }}分 ({{ comments|length }}条评价)</div>
+            </div>
+        </div>
+
+        <!-- 活动基本信息 -->
+        <div class="activity-info">
+            <div class="info-section">
+                <div class="info-icon">📅</div>
+                <div class="info-content">
+                    <h3>活动时间</h3>
+                    <p>{{ to_local_time(activity.event_time).strftime('%Y-%m-%d %H:%M') }}
+                        {% if activity.end_time %}
+                        至 {{ to_local_time(activity.end_time).strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-icon">📍</div>
+                <div class="info-content">
+                    <h3>活动地点</h3>
+                    <p>{{ activity.a_location }}</p>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-icon">👥</div>
+                <div class="info-content">
+                    <h3>人数限制</h3>
+                    <p>
+                        {{ participations|length }} / 
+                        {% if activity.limit_p == 0 %}不限{% else %}{{ activity.limit_p }}{% endif %}
+                        <span class="spots-left">
+                            {% if activity.limit_p > 0 %}
+                            (剩余 {{ activity.limit_p - participations|length }}个名额)
+                            {% endif %}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 活动描述 -->
+        <div class="activity-description">
+            <h2><span class="icon">📝</span> 活动详情</h2>
+            <div class="description-content">
+                {{ activity.a_text }}
+            </div>
+        </div>
+
+        <!-- 活动图片 -->
+        <div class="activity-picture">
+            <h2><span class="icon">🖼️</span> 活动图片</h2>
+            <div class="picture-list">
+                {% if activity_images %}
+                    {% for filename in activity_images %}
+                        <img 
+                            src="{{ url_for('static', filename='a_images/' + activity.a_id + '/' + filename) }}" 
+                            alt="活动图片 {{ loop.index }}"
+                            loading="lazy"
+                            class="activity-image"
+                            onerror="this.remove()"
+                        >
+                    {% endfor %}
+                {% else %}
+                    <div class="no-images">📷暂无图片</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 创建者和参与者 -->
+        <div class="participants-section">
+            <div class="creator-section">
+                <h2><span class="icon">🎯</span> 活动发起人</h2>
+                <div class="user-card {% if activity.creator_c_id == current_user.c_id %}me{% endif %}">
+                    <div class="user-avatar">
+                        {% if activity.creator.c_avatar_URL %}
+                        <img src="{{ activity.creator.c_avatar_URL }}" alt="{{ activity.creator.c_usename }}">
+                        {% else %}
+                        <div class="default-avatar">👤</div>
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <div class="username">{{ activity.creator.c_usename }}</div>
+                        <div class="user-role">活动发起人</div>
+                    </div>
+                    {% if current_user.is_authenticated and activity.creator_c_id != current_user.c_id %}
+                    <button class="chat-btn" onclick="startChat({{ activity.a_id }}, {{ current_user.c_id}},{{ activity.creator.c_id }} )">
+                        <span class="icon">💬</span> 私聊
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="participants-list">
+                <h2><span class="icon">👥</span> 参与成员 ({{ participations|length }})</h2>
+                {% if participations %}
+                <div class="participants-grid">
+                    {% for participation in participations %}
+                    <div class="user-card {% if participation.participant.c_id == current_user.c_id %}me{% endif %}">
+                        <div class="user-avatar">
+                            {% if participation.participant.c_avatar_URL %}
+                            <img src="{{ participation.participant.c_avatar_URL }}" alt="{{ participation.participant.c_usename }}">
+                            {% else %}
+                            <div class="default-avatar">👤</div>
+                            {% endif %}
+                        </div>
+                        <div class="user-info">
+                            <div class="username">{{ participation.participant.c_usename }}</div>
+                            {% if participation.participant.c_id == current_user.c_id %}
+                            <div class="user-role">我</div>
+                            {% endif %}
+                        </div>
+                        {% if current_user.is_authenticated and participation.participant.c_id != current_user.c_id %}
+                        <button class="chat-btn" onclick="startChat({{ activity.a_id }},{{ current_user.c_id }}, {{ participation.participant.c_id }})">
+                            <span class="icon">💬</span> 私聊
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-participants">
+                    <p>暂无参与者</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 参与按钮 -->
+        <div class="action-buttons">
+            {% if current_user.is_authenticated %}
+                {% if is_participant %}
+                <button class="leave-btn" onclick="location.href='{{ url_for('activity_leave', a_id=activity.a_id) }}'">
+                    <span class="icon">🚪</span> 退出活动
+                </button>
+                {% else %}
+                <button class="join-btn" onclick="location.href='{{ url_for('activity_join', a_id=activity.a_id) }}'">
+                    <span class="icon">👍</span> 参与活动
+                </button>
+                {% endif %}
+            {% else %}
+            <div class="login-prompt">
+                <p>请先登录以参与活动或发起聊天</p>
+                <a href="{{ url_for('login') }}" class="login-btn">立即登录</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 评论区域 -->
+        <div class="comments-section">
+            <h2><span class="icon">💬</span> 活动评价 ({{ comments|length }})</h2>
+            
+            {% if current_user.is_authenticated %}
+            <form id="comment-form" method="post" action="{{ url_for('add_comment', a_id=activity.a_id) }}" class="comment-form">
+                <div class="rating-input">
+                    <label>评分:</label>
+                    <div class="star-rating">
+                        {% for i in range(5,0,-1) %}
+                        <input type="radio" 
+                               id="star{{ i }}" 
+                               name="rating" 
+                               value="{{ i }}" 
+                               {{ 'checked' if loop.last else '' }}>
+                        <label for="star{{ i }}">☆</label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="comment-input">
+                    <textarea id="comment-content" name="comment-content" placeholder="写下你的活动评价..." required></textarea>
+                </div>
+                <button type="submit" class="submit-comment">
+                    <span class="icon">📤</span> 提交评价
+                </button>
+            </form>
+            {% endif %}
+
+            <div class="comments-list">
+                {% for comment in comments %}
+                <div class="comment">
+                    <div class="comment-header">
+                        <div class="commenter-avatar">
+                            {% if comment.user.c_avatar_URL %}
+                            <img src="{{ comment.user.c_avatar_URL }}" alt="{{ comment.user.c_usename }}">
+                            {% else %}
+                            <div class="default-avatar">👤</div>
+                            {% endif %}
+                        </div>
+                        <div class="commenter-info">
+                            <div class="commenter-name">{{ comment.user.c_usename }}</div>
+                            <div class="comment-rating">
+                                {% for i in range(1,6) %}
+                                    {% if i <= comment.rating %}
+                                    <span class="star filled">★</span>
+                                    {% else %}
+                                    <span class="star">☆</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="comment-time">{{ to_local_time(comment.e_time).strftime('%Y-%m-%d %H:%M') }}</div>
+                    </div>
+                    <div class="comment-content">
+                        {{ comment.evaluation_content }}
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-comments">
+                    <p>暂无评价，快来发表第一条评论吧！</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function startChat(activityId,userID1, userID2) {
+    {% if current_user.is_authenticated %}
+        {#const userIds = [{{ current_user.c_id }}, userId].sort((a, b) => a - b);#}
+        const conversationId = `${activityId}-${userID1}-${userID2}`;
+        window.location.href = `/chat/${conversationId}`;
+    {% else %}
+        alert('请先登录！');
+        window.location.href = '{{ url_for('login') }}';
+    {% endif %}
+}
+
+// 初始化Socket.IO
+const socket = io('http://' + document.domain + ':' + location.port, {
+    transports: ['websocket'],
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000
+});
+
+// 加入活动评论房间
+socket.on('connect', function() {
+    console.log('SocketIO connected');
+    socket.emit('join_activity_comments', {activity_id: '{{ activity.a_id }}'});
+});
+
+// 接收新评论
+socket.on('new_comment', function(data) {
+    const commentsList = document.querySelector('.comments-list');
+    
+    // 创建评论元素
+    const commentDiv = document.createElement('div');
+    commentDiv.className = 'comment';
+    
+    commentDiv.innerHTML = `
+        <div class="comment-header">
+            <div class="commenter-avatar">
+                ${data.user_avatar ? 
+                    `<img src="${data.user_avatar}" alt="${data.username}">` : 
+                    '<div class="default-avatar">👤</div>'}
+            </div>
+            <div class="commenter-info">
+                <div class="commenter-name">${data.username}</div>
+                <div class="comment-rating">
+                    ${'★'.repeat(data.rating) + '☆'.repeat(5 - data.rating)}
+                </div>
+            </div>
+            <div class="comment-time">${new Date().toLocaleString()}</div>
+        </div>
+        <div class="comment-content">
+            ${data.content}
+        </div>
+    `;
+    
+    // 如果评论列表为空，移除空状态提示
+    if (commentsList.querySelector('.empty-comments')) {
+        commentsList.innerHTML = '';
+    }
+    
+    commentsList.prepend(commentDiv);
+});
+
+// 连接错误处理
+socket.on('connect_error', (error) => {
+    console.log('Connection error:', error);
+});
+
+// 提交评论表单
+document.getElementById('comment-form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const rating = document.querySelector('input[name="rating"]:checked').value;
+    const content = document.getElementById('comment-content').value.trim();
+    
+    if (content) {
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `rating=${rating}&comment-content=${encodeURIComponent(content)}`
+        })
+        .then(response => {
+            if (response.ok) {
+                document.getElementById('comment-content').value = '';
+                return response.json();
+            }
+            throw new Error('评论提交失败');
+        })
+        .then(data => {
+            if (data.success) {
+                // 通过Socket.IO通知其他用户有新评论
+                socket.emit('new_comment', {
+                    activity_id: '{{ activity.a_id }}',
+                    username: '{{ current_user.c_usename }}',
+                    user_avatar: '{{ current_user.c_avatar_URL }}',
+                    rating: rating,
+                    content: content
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('评论提交失败，请重试');
+        });
+    }
+});
+</script>
+
+<style>
+/* ===== 活动详情页样式 ===== */
+:root {
+    --primary: #4A6FA5;
+    --secondary: #6ECCAF;
+    --accent: #FF9F1C;
+    --danger: #ff4d4f;
+    --star: #FFD700;
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --text-light: #666666;
+    --border: #e0e0e0;
+}
+
+.activity-detail-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 120px);
+    background: var(--bg);
+    padding: 20px;
+}
+
+.activity-detail-card {
+    width: 100%;
+    max-width: 800px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    padding: 2rem;
+    animation: fadeInUp 0.6s ease;
+}
+
+/* 活动标题区 */
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.activity-title h1 {
+    font-size: 1.8rem;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.activity-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tag {
+    background: rgba(110, 204, 175, 0.1);
+    color: var(--secondary);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.activity-rating {
+    text-align: right;
+}
+
+.rating-stars {
+    font-size: 1.2rem;
+    color: var(--star);
+    margin-bottom: 0.3rem;
+}
+
+.star.filled {
+    color: var(--star);
+}
+
+.rating-value {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+/* 活动信息 */
+.activity-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.info-section {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.info-icon {
+    font-size: 1.5rem;
+    color: var(--primary);
+    margin-top: 0.3rem;
+}
+
+.info-content h3 {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-bottom: 0.3rem;
+}
+
+.info-content p {
+    font-size: 0.95rem;
+}
+
+.spots-left {
+    color: var(--accent);
+    font-size: 0.85rem;
+    margin-left: 0.5rem;
+}
+
+/* 活动描述 */
+.activity-description {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.activity-description h2 {
+    font-size: 1.3rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.activity-description h2 .icon {
+    margin-right: 0.5rem;
+}
+
+.description-content {
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+/* 参与者区域 */
+.participants-section {
+    margin-bottom: 2rem;
+}
+
+.participants-section h2 {
+    font-size: 1.3rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.participants-section h2 .icon {
+    margin-right: 0.5rem;
+}
+
+.user-card {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.02);
+    margin-bottom: 0.8rem;
+    transition: all 0.2s;
+}
+
+.user-card:hover {
+    background: rgba(74, 111, 165, 0.05);
+}
+
+.user-card.me {
+    background: rgba(74, 111, 165, 0.1);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    margin-right: 1rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.default-avatar {
+    font-size: 1.2rem;
+    color: #ccc;
+}
+
+.user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.username {
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: rgba(255, 159, 28, 0.1);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.chat-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.chat-btn:hover {
+    background: #3a5a8f;
+    transform: translateY(-1px);
+}
+
+.chat-btn .icon {
+    font-size: 1rem;
+}
+
+.participants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.empty-participants {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-light);
+    background: rgba(0,0,0,0.02);
+    border-radius: 8px;
+}
+
+/* 操作按钮 */
+.action-buttons {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.join-btn, .leave-btn, .login-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.8rem 2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    gap: 0.5rem;
+}
+
+.join-btn {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(74, 111, 165, 0.3);
+}
+
+.join-btn:hover {
+    background: linear-gradient(135deg, #3a5a8f, #5cb89e);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(74, 111, 165, 0.4);
+}
+
+.leave-btn {
+    background: rgba(255, 77, 79, 0.1);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.leave-btn:hover {
+    background: rgba(255, 77, 79, 0.2);
+    transform: translateY(-2px);
+}
+
+.login-prompt {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.login-prompt p {
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+}
+
+.login-btn {
+    background: var(--primary);
+    color: white;
+    padding: 0.6rem 1.5rem;
+    border-radius: 6px;
+}
+
+.login-btn:hover {
+    background: #3a5a8f;
+    transform: translateY(-1px);
+}
+
+/* 评论区域 */
+.comments-section {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.comments-section h2 {
+    font-size: 1.3rem;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.comments-section h2 .icon {
+    margin-right: 0.5rem;
+}
+
+.comment-form {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(0,0,0,0.02);
+    border-radius: 12px;
+}
+
+.rating-input {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.rating-input label {
+    font-weight: 500;
+}
+
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--star);
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    cursor: pointer;
+    padding: 0 0.1rem;
+}
+
+.star-rating input:checked ~ label {
+    color: var(--star);
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: var(--star);
+}
+
+.comment-input textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 100px;
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: all 0.2s;
+}
+
+.comment-input textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+    outline: none;
+}
+
+.submit-comment {
+    margin-top: 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.8rem 1.5rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.submit-comment:hover {
+    background: #3a5a8f;
+    transform: translateY(-1px);
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.comment {
+    padding: 1.5rem;
+    background: rgba(0,0,0,0.02);
+    border-radius: 12px;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.commenter-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.commenter-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.commenter-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.commenter-name {
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}
+
+.comment-rating {
+    color: var(--star);
+    font-size: 0.9rem;
+}
+
+.comment-time {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.comment-content {
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+.empty-comments {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-light);
+    background: rgba(0,0,0,0.02);
+    border-radius: 8px;
+}
+
+/*评分星星显示*/
+.star-rating {
+    display: inline-flex;
+    flex-direction: row-reverse; /* 反转顺序实现高亮逻辑 */
+    gap: 2px;
+}
+
+.star-rating input[type="radio"] {
+    display: none; /* 隐藏原生radio */
+}
+
+.star-rating label {
+    cursor: pointer;
+    font-size: 24px;
+    color: #ccc; /* 默认灰色空星 */
+    transition: color 0.2s;
+}
+
+/* 悬停时的高亮效果 */
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+    color: #ffd700; /* 金色实星 */
+}
+
+/* 图片网格布局 */
+.picture-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    padding: 15px;
+    margin-bottom: 25px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 图片样式 */
+.activity-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+    border: 2px solid #fff;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+/* 无图提示 */
+.no-images {
+    padding: 20px;
+    color: #666;
+    text-align: center;
+    font-style: italic;
+    grid-column: 1 / -1;
+    /* 自身定位 */
+    justify-self: center;  /* 水平居中 */
+    align-self: center;    /* 垂直居中 */
+}
+
+/* 悬停效果 */
+.activity-image:hover {
+    transform: scale(1.03);
+    z-index: 2;
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .activity-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .activity-rating {
+        text-align: left;
+    }
+    
+    .participants-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .activity-detail-card {
+        padding: 1.5rem;
+    }
+    
+    .activity-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .comment-header {
+        flex-wrap: wrap;
+    }
+    
+    .comment-time {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="activity-create-container">
+    <div class="activity-create-card">
+        <!-- 标题区 -->
+        <div class="create-header">
+            <h1><span class="icon">🎯</span> 创建新活动</h1>
+            <div class="create-hint">
+                发起活动，找到志同道合的伙伴
+            </div>
+        </div>
+
+        <form method="POST" action="" class="create-form" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            
+            <!-- 活动标题 -->
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">📌</span>
+                    <span>活动标题</span>
+                </label>
+                {{ form.title(class="form-input", placeholder="例如：周末篮球赛") }}
+                {% for error in form.title.errors %}
+                <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- 活动描述 -->
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">📝</span>
+                    <span>活动描述</span>
+                </label>
+                {{ form.description(class="form-textarea", placeholder="详细描述你的活动内容、要求等信息...", rows=5) }}
+                {% for error in form.description.errors %}
+                <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- 时间选择 -->
+            <div class="time-group">
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">⏰</span>
+                        <span>开始时间</span>
+                    </label>
+                    {{ form.event_time(class="form-input", placeholder="YYYY-MM-DD HH:MM") }}
+                    {% for error in form.event_time.errors %}
+                    <div class="error-message">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">⏳</span>
+                        <span>结束时间</span>
+                    </label>
+                    {{ form.end_time(class="form-input", placeholder="YYYY-MM-DD HH:MM") }}
+                    {% for error in form.end_time.errors %}
+                    <div class="error-message">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 活动地点 -->
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">📍</span>
+                    <span>活动地点</span>
+                </label>
+                {{ form.location(class="form-input", placeholder="例如：学校篮球场") }}
+                {% for error in form.location.errors %}
+                <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- 人数限制 -->
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">👥</span>
+                    <span>人数限制</span>
+                </label>
+                {{ form.max_participants(class="form-input", placeholder="0表示不限制") }}
+                {% for error in form.max_participants.errors %}
+                <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!--活动图片-->
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">🖼️</span>
+                    <span>活动图片</span>
+                </label>
+                <div class="image-upload-box">
+                    <!-- 预览容器 -->
+                    <div class="preview-container">
+                        <img id="activity-preview" class="preview-image" 
+                             src="{{ url_for('static', filename='images/default-image.jpg') }}">
+                        <div class="upload-hint">点击下方按钮上传图片</div>
+                    </div>
+                    
+                    <!-- 上传控件 -->
+                    <label class="upload-btn">
+                        📤 选择图片
+{#                        <input type="file" id="images" name="images" #}
+{#                               accept="image/*" #}
+{#                               onchange="previewImage(event)"#}
+{#                               style="display: none;"#}
+{#                               multiple>#}
+
+                        <input type="file" id="images" name="images" multiple  style="display: none;" onchange="previewImage(event)" >
+                    </label>
+                    <div class="file-info">支持 JPG/PNG 格式，最多5张</div>
+                </div>
+            </div>
+
+            <!-- 提交按钮 -->
+            <div class="form-actions">
+                {{ form.submit(class="create-btn") }}
+                <button type="button" class="cancel-btn" onclick="window.history.back()">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- 成功提示弹窗 (默认隐藏) -->
+<div id="success-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>活动创建成功！</h2>
+        </div>
+        <div class="modal-body">
+            <p>🎉 您的活动已成功创建！</p>
+            <p>您可以在活动管理页面继续完善活动信息，如添加标签等。</p>
+        </div>
+        <div class="modal-actions">
+            <button id="go-to-manage" class="confirm-btn">前往活动管理</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('activity-form');
+    const successModal = document.getElementById('success-modal');
+    const goToManageBtn = document.getElementById('go-to-manage');
+    let activityId = null;
+    
+    // 拦截表单提交
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 使用Fetch API提交表单
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                activityId = data.activity_id;
+                // 显示成功弹窗
+                successModal.style.display = 'block';
+            } else {
+                alert('创建活动失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('提交过程中出错');
+        });
+    });
+    
+    // 点击前往活动管理
+    goToManageBtn.addEventListener('click', function() {
+        if(activityId) {
+            window.location.href = `/manage_activity/${activityId}`;
+        } else {
+            window.location.href = '/my_activities';
+        }
+    });
+    
+    // 点击弹窗外部关闭
+    window.addEventListener('click', function(e) {
+        if (e.target === successModal) {
+            if(activityId) {
+                window.location.href = `/manage_activity/${activityId}`;
+            } else {
+                window.location.href = '/my_activities';
+            }
+        }
+    });
+});
+
+// 日期时间选择器初始化
+document.addEventListener('DOMContentLoaded', function() {
+    flatpickr("#event_time", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        minDate: "today",
+        time_24hr: true
+    });
+    
+    flatpickr("#end_time", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        minDate: "today",
+        time_24hr: true
+    });
+});
+</script>
+<script>
+    // 图片预览功能
+    function previewImage(event) {
+        const input = event.target;
+        const preview = document.getElementById('activity-preview');
+        const hint = document.querySelector('.upload-hint');
+    
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                hint.style.display = 'none';
+                preview.style.display = 'block';
+            };
+            
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.src = "{{ url_for('static', filename='images/default-image.jpg') }}";
+            hint.style.display = 'block';
+        }
+    }
+    </script>
+
+<style>
+/* ===== 活动创建页样式 ===== */
+:root {
+    --primary: #4A6FA5;
+    --secondary: #6ECCAF;
+    --accent: #FF9F1C;
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --text-light: #666666;
+    --border: #e0e0e0;
+}
+
+.activity-create-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px;
+}
+
+.activity-create-card {
+    width: 100%;
+    max-width: 700px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    padding: 2.5rem;
+    animation: fadeInUp 0.6s ease;
+}
+
+/* 标题区 */
+.create-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.create-header h1 {
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.create-header .icon {
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.create-hint {
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+/* 表单组 */
+.create-form {
+    margin-top: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.8rem;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.label-icon {
+    margin-right: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.tag-hint {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-left: 0.5rem;
+    font-weight: normal;
+}
+
+/* 输入框样式 */
+.form-input, .form-textarea {
+    width: 92%;
+    padding: 0.9rem 1.2rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-input:focus, .form-textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+    outline: none;
+}
+
+/* 时间选择组 */
+.time-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 576px) {
+    .time-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 标签选择 */
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.tag-option {
+    position: relative;
+}
+
+.tag-option input {
+    position: absolute;
+    opacity: 0;
+}
+
+.tag-option label {
+    display: inline-block;
+    padding: 0.6rem 1rem;
+    background: rgba(0,0,0,0.05);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    user-select: none;
+}
+
+.tag-option input:checked + label {
+    background: var(--primary);
+    color: white;
+}
+
+/* 按钮 */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.create-btn {
+    flex: 1;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(74, 111, 165, 0.3);
+}
+
+.create-btn:hover {
+    background: linear-gradient(135deg, #3a5a8f, #5cb89e);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(74, 111, 165, 0.4);
+}
+
+.cancel-btn {
+    flex: 1;
+    padding: 0.9rem;
+    background: white;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+    background: #f5f5f5;
+}
+
+/*活动图片*/
+/* 图片上传区域 */
+.image-upload-box {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.preview-container {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 6px;
+    display: none;
+}
+
+.upload-hint {
+    color: #999;
+    font-size: 0.9em;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.upload-btn {
+    background: #f8f9fa;
+    border: 1px solid #007bff;
+    color: #007bff;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.upload-btn:hover {
+    background: #007bff;
+    color: white;
+}
+
+.file-info {
+    color: #666;
+    font-size: 0.85em;
+    margin-top: 8px;
+}
+
+/* 成功弹窗样式 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 25px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 500px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+.modal-header {
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+    color: #4CAF50;
+    margin: 0;
+}
+
+.modal-body {
+    padding: 20px 0;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.modal-body p {
+    margin: 10px 0;
+}
+
+.modal-actions {
+    margin-top: 25px;
+}
+
+.confirm-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.confirm-btn:hover {
+    background-color: #45a049;
+}
+
+/* 错误提示 */
+.error-message {
+    color: #ff4d4f;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    padding-left: 0.5rem;
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 576px) {
+    .activity-create-card {
+        padding: 1.5rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}

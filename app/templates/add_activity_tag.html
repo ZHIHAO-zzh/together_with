@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="tag-container">
+    <div class="tag-header">
+        <h1>✨ 创建新标签</h1>
+        <p>为您的活动添加独特的分类标识</p>
+        <a href="{{ url_for('activity_edit', activity_id=activity.a_id) }}" class="back-btn">← 返回活动编辑</a>
+    </div>
+
+    <div class="tag-card">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('add_activity_tag', activity_id=activity.a_id) }}" class="tag-form">
+            <input type="hidden" name="activity_id" value="{{ activity_id }}">
+            <div class="form-group">
+                <label>标签名称</label>
+                <input type="text" name="new_tag" class="form-input" 
+                       placeholder="输入2-20个字符" 
+                       maxlength="20"
+                       required
+                       oninput="updateCounter(this)">
+                <div class="char-counter"><span id="char-count">0</span>/20</div>
+            </div>
+            
+            <button type="submit" class="submit-btn">
+                <span class="btn-text">创建标签</span>
+                <span class="btn-icon">→</span>
+            </button>
+        </form>
+        
+        <div class="tag-examples">
+            <h3>热门标签参考</h3>
+            <div class="tag-cloud">
+                <span class="example-tag" onclick="fillExample('户外运动')">户外运动</span>
+                <span class="example-tag" onclick="fillExample('读书会')">读书会</span>
+                <span class="example-tag" onclick="fillExample('技术沙龙')">技术沙龙</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tag-container {
+        max-width: 500px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+    
+    .tag-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .tag-progress {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .progress-step {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #999;
+    }
+    
+    .progress-step.active {
+        background: #4a6cf7;
+        color: white;
+    }
+    
+    .progress-line {
+        width: 40px;
+        height: 2px;
+        background: #f0f0f0;
+    }
+    
+    .tag-header h1 {
+        font-size: 24px;
+        margin: 10px 0;
+        color: #333;
+    }
+    
+    .tag-header p {
+        color: #666;
+        margin: 0;
+    }
+    
+    .tag-card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .alert {
+        padding: 10px 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-error {
+        background: #fff1f0;
+        color: #f5222d;
+    }
+    
+    .alert-success {
+        background: #f6ffed;
+        color: #52c41a;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .form-input {
+        width: 93%;
+        padding: 12px 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+    }
+    
+    .form-input:focus {
+        border-color: #4a6cf7;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.2);
+    }
+    
+    .char-counter {
+        text-align: right;
+        font-size: 13px;
+        color: #999;
+        margin-top: 5px;
+    }
+    
+    .submit-btn {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #4a6cf7, #6a4af7);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+    }
+    
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 108, 247, 0.3);
+    }
+    
+    .btn-icon {
+        transition: transform 0.3s;
+    }
+    
+    .submit-btn:hover .btn-icon {
+        transform: translateX(3px);
+    }
+    
+    .tag-examples {
+        margin-top: 30px;
+        text-align: center;
+    }
+    
+    .tag-examples h3 {
+        font-size: 14px;
+        color: #999;
+        margin-bottom: 15px;
+    }
+    
+    .tag-cloud {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .example-tag {
+        padding: 8px 15px;
+        background: #f5f5f5;
+        border-radius: 20px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .example-tag:hover {
+        background: #e0e0e0;
+    }
+
+    /* 基础按钮样式 */
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    background: #f5f7fa;  /* 柔和的背景色 */
+    border-radius: 25px;   /* 胶囊形状 */
+    color: #2c3e50;       /* 深色文字 */
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 微妙投影 */
+    border: 1px solid #e0e0e0; /* 浅色边框 */
+    margin-top: 25px;
+    position: relative; /* 为悬停动画准备 */
+}
+
+/* 左箭头符号样式 */
+.back-btn::before {
+    content: "←";
+    display: inline-block;
+    margin-right: 8px;
+    font-weight: 600;
+    transform: translateX(0);
+    transition: transform 0.2s ease;
+}
+
+/* 悬停动效 */
+.back-btn:hover {
+    background: #ebedf0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+    color: #34495e; /* 略微加深文字颜色 */
+}
+
+.back-btn:hover::before {
+    transform: translateX(-3px); /* 箭头左移动画 */
+}
+
+/* 活动状态 */
+.back-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .back-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        margin-bottom: 15px;
+        width: fit-content; /* 确保按钮不会撑满屏幕 */
+    }
+}
+
+/* 夜间模式适配 */
+@media (prefers-color-scheme: dark) {
+    .back-btn {
+        background: #2d333b;
+        color: #adbac7;
+        border-color: #444c56;
+    }
+    .back-btn:hover {
+        background: #373e47;
+        color: #cdd9e5;
+    }
+}
+
+</style>
+
+<script>
+    function updateCounter(input) {
+        document.getElementById('char-count').textContent = input.value.length;
+    }
+    
+    function fillExample(tagName) {
+        const input = document.querySelector('.form-input');
+        input.value = tagName;
+        updateCounter(input);
+        input.focus();
+    }
+    
+    document.querySelector('.tag-form').addEventListener('submit', function(e) {
+        const btn = this.querySelector('.submit-btn');
+        btn.disabled = true;
+        btn.querySelector('.btn-text').textContent = '创建中...';
+    });
+</script>
+{% endblock %}

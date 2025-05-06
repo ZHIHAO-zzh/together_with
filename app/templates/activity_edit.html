@@ -1,0 +1,569 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="activity-edit-container">
+    <div class="edit-header">
+        <h1 class="edit-title">✏️ 编辑活动</h1>
+    </div>
+    
+    <form method="POST" action="" class="layui-form edit-form" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-section">
+            <div class="form-group">
+                {{ form.title.label(class="form-label") }}
+                {{ form.title(size=32, class="form-input", placeholder="为你的活动起个吸引人的名字") }}
+                {% for error in form.title.errors %}
+                    <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">🏷️ 活动标签</label>
+                <div class="tags-container">
+                    {% for tag in tags %}
+                        {% if tag.tag_id in activity_tags %}
+                        <label class="tag-item {% if tag.tag_id in hobbies %}selected{% endif %}">
+                            <input type="checkbox" name="selected_tags" value="{{ tag.tag_id }}" 
+                                {% if tag.tag_id in hobbies %}checked{% endif %}>
+                            {{ tag.tag_name }}
+                            <button class="delete-tag-btn" data-tag-id="{{ tag.tag_id }}" onclick="handleDeleteTag(event)">
+                            ×
+                            </button>
+                        </label>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <a href="{{ url_for('add_activity_tag', activity_id=activity.a_id) }}" class="add-tag-btn">
+                    <span class="btn-icon">+</span>
+                    <span class="btn-text">添加标签</span>
+                </a>
+            </div>
+            
+            <div class="form-group">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(rows=5, cols=32, class="form-textarea", placeholder="描述你的活动内容、亮点和参与方式...") }}
+                <div class="char-counter"><span id="desc-count">0</span>/500</div>
+                {% for error in form.description.errors %}
+                    <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <div class="form-row">
+                <div class="form-group half-width">
+                    {{ form.event_time.label(class="form-label") }}
+                    {{ form.event_time(class="form-input datetime-input") }}
+                    {% for error in form.event_time.errors %}
+                        <span class="error-message">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="form-group half-width">
+                    {{ form.end_time.label(class="form-label") }}
+                    {{ form.end_time(class="form-input datetime-input") }}
+                    {% for error in form.end_time.errors %}
+                        <span class="error-message">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                {{ form.location.label(class="form-label") }}
+                {{ form.location(class="form-input", placeholder="输入活动地点或在线平台") }}
+                {% for error in form.location.errors %}
+                    <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+            
+            <!-- 人数限制 -->
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">👥</span>
+                    <span>人数限制</span>
+                </label>
+                {{ form.max_participants(class="form-input", placeholder="0表示不限制", default=activity.limit_p) }}
+                {% for error in form.max_participants.errors %}
+                <div class="error-message">{{ error }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!--活动图片-->
+        <div class="form-group">
+            <label class="form-label">
+                <span class="label-icon">🖼️</span>
+                <span>活动图片</span>
+            </label>
+            <div class="image-upload-box">
+                <!-- 预览容器 -->
+                <div class="preview-container">
+                    <img id="activity-preview" class="preview-image" 
+                         src="{{ url_for('static', filename='images/default-image.jpg') }}">
+                    <div class="upload-hint">点击下方按钮上传图片</div>
+                </div>
+                
+                <!-- 上传控件 -->
+                <label class="upload-btn">
+                    📤 选择图片
+
+                    <input type="file" id="images" name="images" multiple  style="display: none;" onchange="previewImage(event)" >
+                </label>
+                <div class="file-info">支持 JPG/PNG 格式，最多5张</div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="submit-button">
+                <span class="button-text">保存活动</span>
+                <span class="button-icon">→</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    layui.use(['form', 'layer'], function(){
+        var form = layui.form;
+        var layer = layui.layer;
+    });
+    
+    // 描述字数统计
+    document.querySelector('.form-textarea').addEventListener('input', function() {
+        const counter = document.getElementById('desc-count');
+        counter.textContent = this.value.length;
+    });
+    
+    // 范围滑块值显示
+    document.querySelector('.range-input').addEventListener('input', function() {
+        this.nextElementSibling.textContent = this.value;
+    });
+    
+    // 图片预览功能
+    document.getElementById('images').addEventListener('change', function(e) {
+        const previewContainer = document.getElementById('image-preview');
+        previewContainer.innerHTML = '';
+        
+        if (this.files) {
+            Array.from(this.files).forEach(file => {
+                if (!file.type.match('image.*')) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.createElement('div');
+                    preview.className = 'preview-item';
+                    preview.innerHTML = `
+                        <img src="${event.target.result}" alt="预览">
+                        <span class="remove-preview">×</span>
+                    `;
+                    previewContainer.appendChild(preview);
+                    
+                    // 添加删除预览功能
+                    preview.querySelector('.remove-preview').addEventListener('click', function() {
+                        preview.remove();
+                    });
+                }
+                reader.readAsDataURL(file);
+            });
+        }
+    });
+    
+    // 标签点击效果
+    document.querySelectorAll('.tag-item').forEach(item => {
+        item.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+    });
+
+    async function handleDeleteTag(event) {
+    // 阻止默认行为（重要！防止触发其他点击事件）
+    event.preventDefault();
+    
+    if (!confirm('确定要删除这个标签吗？')) return;
+
+    const button = event.currentTarget;
+    const tagId = button.dataset.tagId;
+
+    try {
+        const response = await fetch('/delete_activity_tag', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tag_id: tagId })
+        });
+
+        if (response.ok) {
+            // 删除成功后移除整个标签项
+            button.closest('.tag-item').remove();
+        } else {
+            const error = await response.json();
+            alert(`删除失败：${error.message}`);
+        }
+    } catch (error) {
+        console.error('请求错误:', error);
+        alert('网络请求失败，请检查连接');
+    }
+}
+
+    // 图片预览功能
+    function previewImage(event) {
+        const input = event.target;
+        const preview = document.getElementById('activity-preview');
+        const hint = document.querySelector('.upload-hint');
+    
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                hint.style.display = 'none';
+                preview.style.display = 'block';
+            };
+            
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.src = "{{ url_for('static', filename='images/default-image.jpg') }}";
+            hint.style.display = 'block';
+        }
+    }
+</script>
+
+<style>
+    .activity-edit-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 30px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    
+    .edit-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+    
+    .progress-tracker {
+        display: flex;
+        align-items: center;
+    }
+    
+    .progress-step {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #f0f0f0;
+        color: #999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .progress-step.active {
+        background: #4a6cf7;
+        color: white;
+    }
+    
+    .progress-connector {
+        width: 40px;
+        height: 2px;
+        background: #f0f0f0;
+    }
+    
+    .form-section {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .form-input, .form-textarea {
+        width: 92%;
+        padding: 12px 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+    
+    .form-input:focus, .form-textarea:focus {
+        border-color: #4a6cf7;
+        box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+        outline: none;
+    }
+    
+    .form-textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
+    .char-counter {
+        text-align: right;
+        font-size: 12px;
+        color: #999;
+        margin-top: 5px;
+    }
+    
+    .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .tag-item {
+        padding: 8px 15px;
+        background: #f5f5f5;
+        border-radius: 20px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .tag-item:hover {
+        background: #e0e0e0;
+    }
+    
+    .tag-item.active {
+        background: #4a6cf7;
+        color: white;
+    }
+    
+    .tag-item input {
+        display: none;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .half-width {
+        flex: 1;
+    }
+    
+    .range-slider-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .range-input {
+        flex: 1;
+    }
+    
+    .range-value {
+        font-weight: 600;
+        color: #4a6cf7;
+        min-width: 30px;
+        display: inline-block;
+        text-align: center;
+    }
+    
+    .image-uploader {
+        margin-top: 10px;
+    }
+    
+    .upload-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 120px;
+        border: 2px dashed #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .upload-area:hover {
+        border-color: #4a6cf7;
+        background: #f8faff;
+    }
+    
+    .upload-icon {
+        font-size: 24px;
+        color: #4a6cf7;
+        margin-bottom: 8px;
+    }
+    
+    .upload-text {
+        color: #777;
+        font-size: 14px;
+    }
+    
+    .file-input {
+        display: none;
+    }
+    
+    .preview-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .preview-item {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    
+    .preview-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .remove-preview {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 18px;
+        height: 18px;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    
+    .form-actions {
+        text-align: right;
+        margin-top: 30px;
+    }
+    
+    .submit-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #4a6cf7, #6a4af7);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 12px rgba(74, 108, 247, 0.2);
+    }
+    
+    .submit-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(74, 108, 247, 0.3);
+    }
+    
+    .button-icon {
+        margin-left: 8px;
+        transition: transform 0.3s;
+    }
+    
+    .submit-button:hover .button-icon {
+        transform: translateX(3px);
+    }
+    
+    .error-message {
+        display: block;
+        margin-top: 5px;
+        color: #ff4d4f;
+        font-size: 13px;
+    }
+    
+    .datetime-input {
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat 95% center;
+        background-size: 16px;
+    }
+
+    .delete-tag-btn {
+    color: #ff4d4f;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    }
+
+    /*活动图片*/
+    /* 图片上传区域 */
+    .image-upload-box {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .preview-container {
+        position: relative;
+        margin-bottom: 15px;
+    }
+
+    .preview-image {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 6px;
+        display: none;
+    }
+
+    .upload-hint {
+        color: #999;
+        font-size: 0.9em;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .upload-btn {
+        background: #f8f9fa;
+        border: 1px solid #007bff;
+        color: #007bff;
+        padding: 8px 20px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .upload-btn:hover {
+        background: #007bff;
+        color: white;
+    }
+
+    .file-info {
+        color: #666;
+        font-size: 0.85em;
+        margin-top: 8px;
+    }
+</style>
+{% endblock %}

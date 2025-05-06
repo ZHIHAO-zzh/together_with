@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="friends-container">
+    <div class="friends-card">
+        <!-- 标题区 -->
+        <div class="friends-header">
+            {% if states == 0 %}
+            <h1><span class="icon">👥</span> 好友列表</h1>
+            {% elif states == 1 %}
+            <h1><span class="icon">🔍</span> 搜索用户</h1>
+            {% endif %}
+            <div class="friends-count">
+                <span class="count-number">{{ (others|length if others else 0) + (m_others|length if m_others else 0) }}</span> 个联系人
+            </div>
+        </div>
+
+        <!-- 搜索栏 -->
+        <form method="GET" action="{{ url_for('relationship') }}" class="search-form">
+            <div class="search-input">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="f_search" value="{{ search }}" placeholder="搜索用户名">
+                <button type="submit" class="search-btn">搜索</button>
+            </div>
+        </form>
+
+        <!-- 好友列表 -->
+        <div class="friends-list">
+            {% if others or m_others or n_others or a_others%}
+                <!--被拒绝-->
+                {% for friend in a_others %}
+                <div class="friend-card stranger">
+                    <div class="friend-avatar">
+                        {% if friend.c_avatar_URL %}
+                        <img src="{{ friend.c_avatar_URL }}" alt="{{ friend.c_usename }}">
+                        {% else %}
+                        <div class="default-avatar">👤</div>
+                        {% endif %}
+                    </div>
+                    <div class="friend-info">
+                        <div class="friend-name">
+                            {{ friend.c_usename }}
+                            <div class="friend-reject"><span>申请拒绝</span></div>
+                        </div>
+                        <div class="friend-status">陌生人</div>
+                    </div>
+                    <form method="POST" action="{{ url_for('change_friend_request') }}" class="friend-action">
+                        <input type="hidden" name="friend_id" value="{{ friend.c_id }}">
+                        <button type="submit" class="add-btn">
+                            <span class="icon">✉️</span>
+                            <span>申请好友</span>
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+
+                <!-- 陌生人 -->
+                {% for friend in n_others %}
+                <div class="friend-card stranger">
+                    <div class="friend-avatar">
+                        {% if friend.c_avatar_URL %}
+                        <img src="{{ friend.c_avatar_URL }}" alt="{{ friend.c_usename }}">
+                        {% else %}
+                        <div class="default-avatar">👤</div>
+                        {% endif %}
+                    </div>
+                    <div class="friend-info">
+                        <div class="friend-name">{{ friend.c_usename }}</div>
+                        <div class="friend-status">陌生人</div>
+                    </div>
+                    <form method="POST" action="{{ url_for('add_friend_request') }}" class="friend-action">
+                        <input type="hidden" name="friend_id" value="{{ friend.c_id }}">
+                        <button type="submit" class="add-btn">
+                            <span class="icon">✉️</span>
+                            <span>申请好友</span>
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+
+                <!-- 申请中 -->
+                {% for friend in m_others %}
+                <div class="friend-card pending">
+                    <div class="friend-avatar">
+                        {% if friend.c_avatar_URL %}
+                        <img src="{{ friend.c_avatar_URL }}" alt="{{ friend.c_usename }}">
+                        {% else %}
+                        <div class="default-avatar">👤</div>
+                        {% endif %}
+                    </div>
+                    <div class="friend-info">
+                        <a href="{{ url_for('friend_chat', other_id=friend.c_id) }}" class="friend-name">{{ friend.c_usename }}</a>
+                        <div class="friend-status">等待验证</div>
+                    </div>
+                    <div class="friend-action">
+                        <div class="pending-badge">审核中</div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- 已好友 -->
+                {% for friend in others %}
+                <div class="friend-card friend">
+                    <div class="friend-avatar">
+                        {% if friend.c_avatar_URL %}
+                        <img src="{{ friend.c_avatar_URL }}" alt="{{ friend.c_usename }}">
+                        {% else %}
+                        <div class="default-avatar">👤</div>
+                        {% endif %}
+                        <div class="online-status"></div>
+                    </div>
+                    <div class="friend-info">
+                        <a href="{{ url_for('friend_chat', other_id=friend.c_id) }}" class="friend-name">{{ friend.c_usename }}</a>
+                        <div class="friend-status">好友</div>
+                    </div>
+                    <form method="POST" action="{{ url_for('delete_friend') }}" class="friend-action">
+                        <input type="hidden" name="delete" value="{{ friend.c_id }}">
+                        <button type="submit" class="delete-btn" onclick="return confirm('确定要删除好友吗？')">
+                            <span class="icon">🗑️</span>
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">👻</div>
+                    <h3>暂无好友</h3>
+                    <p>快去搜索添加新朋友吧！</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* ===== 好友页面样式 ===== */
+:root {
+    --primary: #4A6FA5;
+    --secondary: #6ECCAF;
+    --accent: #FF9F1C;
+    --danger: #ff4d4f;
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --text-light: #666666;
+    --border: #e0e0e0;
+}
+
+.friends-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 120px);
+    background: var(--bg);
+    padding: 20px;
+}
+
+.friends-card {
+    width: 100%;
+    max-width: 600px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    padding: 2rem;
+    animation: fadeInUp 0.6s ease;
+}
+
+.friends-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.friends-header h1 {
+    font-size: 1.5rem;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+}
+
+.friends-header .icon {
+    margin-right: 0.5rem;
+    font-size: 1.3rem;
+}
+
+.friends-count {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.count-number {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+/* 搜索栏 */
+.search-form {
+    margin-bottom: 1.5rem;
+}
+
+.search-input {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.search-input:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+}
+
+.search-icon {
+    padding: 0 1rem;
+    color: var(--text-light);
+    font-size: 1.1rem;
+}
+
+.search-input input {
+    flex: 1;
+    padding: 0.8rem 0;
+    border: none;
+    outline: none;
+    font-size: 0.95rem;
+}
+
+.search-btn {
+    padding: 1rem 1.5rem;
+    height: 100%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.search-btn:hover {
+    background: #3a5a8f;
+}
+
+/* 好友列表 */
+.friends-list {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.friend-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s;
+    background: rgba(0,0,0,0.02);
+}
+
+.friend-card:hover {
+    background: rgba(74, 111, 165, 0.05);
+    transform: translateX(4px);
+}
+
+.friend-avatar {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.friend-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.default-avatar {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #ccc;
+}
+
+.online-status {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--secondary);
+    border: 2px solid white;
+}
+
+.friend-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.friend-name {
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.friend-name:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.friend-reject {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: rgb(221, 57, 112);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.friend-status {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 0.2rem;
+}
+
+.friend-action {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.add-btn {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-btn:hover {
+    background: #3a5a8f;
+    transform: translateY(-1px);
+}
+
+.add-btn .icon {
+    margin-right: 0.3rem;
+}
+
+.pending-badge {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 159, 28, 0.1);
+    color: var(--accent);
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.delete-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 77, 79, 0.1);
+    color: var(--danger);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    background: rgba(255, 77, 79, 0.2);
+    transform: scale(1.1);
+}
+
+/* 不同状态卡片 */
+.friend-card.stranger {
+    border-left: 4px solid #ccc;
+}
+
+.friend-card.pending {
+    border-left: 4px solid var(--accent);
+}
+
+.friend-card.friend {
+    border-left: 4px solid var(--secondary);
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-light);
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 576px) {
+    .friends-card {
+        padding: 1.5rem;
+    }
+    
+    .friend-card {
+        padding: 0.75rem;
+    }
+    
+    .friend-avatar {
+        width: 40px;
+        height: 40px;
+        margin-right: 0.75rem;
+    }
+    
+    .add-btn span:last-child {
+        display: none;
+    }
+    
+    .add-btn .icon {
+        margin-right: 0;
+    }
+}
+</style>
+{% endblock %}
