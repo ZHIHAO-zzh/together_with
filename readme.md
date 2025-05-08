@@ -1,7 +1,7 @@
 
 # 一起吧 项目
 ## 软工小组成员：陈奕霖，潘笑寒，张志豪，孙恩泽
-##Github地址：https://github.com/ZHIHAO-zzh/together_with.git
+## Github地址：https://github.com/ZHIHAO-zzh/together_with.git
 
 ## 项目简介
 
